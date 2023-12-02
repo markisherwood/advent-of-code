@@ -1,7 +1,11 @@
 use std::{fs::{self}, collections::HashMap, str::Lines};
 
 fn main() {
-    let file_path = "data/input-data.txt";
+    run_day_1();
+}
+
+fn run_day_1() {
+    let file_path = "data/day-1.txt";
     // let file_path = "data/day-1-2-sample.txt";
     let file_data = fs::read_to_string(file_path)
     .expect("Should have been able to read the file");
@@ -9,7 +13,6 @@ fn main() {
     
     println!("Day 1-1 answer: {}", get_day_1_1_answer(input.clone()));
     println!("Day 1-2 answer: {}", get_day_1_2_answer(input.clone()));
-
 }
 
 fn get_day_1_1_answer(input_data: Lines) -> String {

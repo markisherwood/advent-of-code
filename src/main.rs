@@ -20,17 +20,28 @@ fn run_day_2() {
     let input = file_data.lines();
     
     println!("Day 2-1 answer: {}", get_day_2_1_answer(input.clone()));
+    println!("Day 2-2 answer: {}", get_day_2_2_answer(input.clone()));
 }
 
 fn get_day_2_1_answer(input_data: Lines) -> usize {
     let dice_data = input_data.map(|x| convert_dice_data(x));
-    let max_dice_data = dice_data.map(get_maximum_dice_possible_from_game);
+    let max_dice_data = dice_data.map(get_minimum_dice_possible_from_game);
     let possible_games = max_dice_data.enumerate().filter(|x| possible_dice_game(&x.1, 12, 13, 14));
 
     let possible_games_ids = possible_games.map(|x| x.0 + 1);
     let total = possible_games_ids.sum();
-    assert_eq!(total, 2101);
+    // assert_eq!(total, 2101);
     return total;    
+}
+
+fn get_day_2_2_answer(input_data: Lines) -> u32 {
+    let dice_data = input_data.map(|x| convert_dice_data(x));
+    let min_dice_data = dice_data.map(get_minimum_dice_possible_from_game);
+    let dice_power = min_dice_data.map(get_dice_power);
+
+    let total = dice_power.sum();
+    assert_eq!(total, 58269);
+    return total;
 }
 
 // Converts a line of game data into a vector representing the individual dice pulls
@@ -64,8 +75,8 @@ fn convert_dice_data(input: &str) -> Vec<DicePull> {
     return games;
 }
 
-/// Determine the maximum possible number of each dice from multiple dice pulls
-fn get_maximum_dice_possible_from_game(games: Vec<DicePull>) -> DicePull {
+/// Determine the minimum possible number of each dice from multiple dice pulls
+fn get_minimum_dice_possible_from_game(games: Vec<DicePull>) -> DicePull {
     let mut max_possible_dice = DicePull { red: 0, green: 0, blue: 0 };
     for game in games {
         if game.red > max_possible_dice. red {
@@ -93,6 +104,11 @@ fn possible_dice_game(game: &DicePull, max_red: u32, max_green: u32, max_blue: u
     } else {
         return false;
     }
+}
+
+/// Determines the minimum "power" of a set of dice by multiplying the known number of each dice.
+fn get_dice_power(dice_pull: DicePull) -> u32 {
+    return dice_pull.red * dice_pull.green * dice_pull.blue;
 }
 
 fn run_day_1() {

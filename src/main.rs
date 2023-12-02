@@ -1,12 +1,80 @@
 use std::{fs::{self}, collections::HashMap, str::Lines};
 
+use regex::Regex;
+
 fn main() {
+    run_day_2();
     run_day_1();
+}
+
+fn run_day_2() {
+    let file_path = "data/day-2.txt";
+    let file_data = fs::read_to_string(file_path)
+    .expect("Should have been able to read the file");
+    let input = file_data.lines();
+    
+    println!("Day 2-1 answer: {}", get_day_2_1_answer(input.clone()));
+}
+
+fn get_day_2_1_answer(input_data: Lines) -> usize {
+    let dice_data = input_data.map(|x| convert_dice_data(x));
+    let possible_games = dice_data.enumerate().filter(|x| possible_dice_game(x.1, 12, 13, 14));
+    for x in possible_games.clone() {
+        println!("Line {} is possible", x.0);
+    }
+    let possible_games_ids = possible_games.map(|x| x.0 + 1);
+    let total = possible_games_ids.sum();
+    return total;    
+}
+// Converts a line of game data into a vector representing the maximum possible red, green, and blue dice respectively.
+fn convert_dice_data(input: &str) -> (u32, u32, u32) {
+    // Strip out the game number
+    let game_data = input.split(':').skip(1).next().unwrap();
+    // Split into individual dice pulls
+    let dice_pulls = game_data.split(';');
+    let regex = Regex::new(r"(\d+) (green|red|blue)").unwrap();
+
+    let mut red = Vec::new();
+    let mut green = Vec::new();
+    let mut blue = Vec::new();
+
+    // Loop over each dice pull
+    for game in dice_pulls {
+        let matches = regex.captures_iter(game);
+        // Add the number of dice to the appropriate colour vector
+        for colour_group in matches {
+            let (_, [str_number, colour]) = colour_group.extract();
+            let number: u32 = str_number.parse().unwrap();
+            match colour {
+                "red" => red.push(number),
+                "green" => green.push(number),
+                "blue" => blue.push(number),
+                _ => panic!("Unknown colour found")
+            }
+        }
+    }
+    let max_red = red.iter().max().unwrap();
+    let max_green = green.iter().max().unwrap();
+    let max_blue = blue.iter().max().unwrap();
+    return (*max_red, *max_green, *max_blue);
+}
+
+/// Checks if a given game exceeds the maximum number of dice provided.
+fn possible_dice_game(game: (u32, u32, u32), max_red: u32, max_green: u32, max_blue: u32) -> bool{
+    let total_dice = game.0 + game.1 + game.2;
+    let max_dice = max_red + max_green + max_blue;
+    if total_dice > max_dice{
+        return false;
+    }
+    else if game.0 <= max_red && game.1 <= max_green && game.2 <= max_blue {
+        return true;
+    } else {
+        return false;
+    }
 }
 
 fn run_day_1() {
     let file_path = "data/day-1.txt";
-    // let file_path = "data/day-1-2-sample.txt";
     let file_data = fs::read_to_string(file_path)
     .expect("Should have been able to read the file");
     let input = file_data.lines();

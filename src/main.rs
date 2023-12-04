@@ -1,12 +1,6 @@
-use std::{fs::{self}, collections::HashMap, str::Lines};
+use std::{fs::{self}, collections::HashMap, str::Lines, fmt};
 
 use regex::Regex;
-
-struct DicePull {
-    red: u32,
-    green: u32,
-    blue: u32,
-}
 
 fn main() {
     run_day_3();
@@ -21,13 +15,134 @@ fn run_day_3() {
     let input = file_data.lines();
     
     println!("Day 3-1 answer: {}", get_day_3_1_answer(input.clone()));
+    println!("Day 3-2 answer: {}", get_day_3_2_answer(input.clone()));
+}
+
+fn get_day_3_2_answer(input_data: Lines) -> usize {
+    let engine_matrix: Vec<Vec<char>> = input_data.map(|x| convert_engine_data(x)).collect();
+    let gears = find_gears(&engine_matrix);
+    let total = gears.iter().map(|x| x.0.number * x.1.number).sum();
+    assert_eq!(total, 73074886);
+    return total;
+}
+
+#[derive(Copy, Clone)]
+struct PartNumber {
+    x: usize,
+    y: usize,
+    len: usize,
+    number: usize,
+}
+
+impl fmt::Display for PartNumber {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "({}, {}) => {}", self.x, self.y, self.number)
+    }
+}
+
+fn find_gears(matrix: &Vec<Vec<char>>) -> Vec<(PartNumber, PartNumber)> {
+    let mut gears: Vec<(PartNumber, PartNumber)> = Vec::new();
+    for (y, row) in matrix.iter().enumerate() {
+        for (x, char) in row.iter().enumerate() {
+            if *char == '*' {
+                let result = check_if_valid_gear(x, y, &matrix);
+                match result {
+                    Some(x) => gears.push(x),
+                    None => {}
+                };
+            }
+        }
+    }
+    return gears;
+}
+
+fn check_if_valid_gear(x: usize, y:usize, matrix: &Vec<Vec<char>>) -> Option<(PartNumber, PartNumber)> {
+    let min_x = if x == 0 { 0 } else { x - 1 };
+    let max_x = (x + 1).min(matrix[0].len() - 1);
+    let mut found_part_numbers: Vec<PartNumber> = Vec::new();
+
+    // Tracks how many elements to skip when dealing with multi-digit numbers
+    let mut skip_until = 0;
+    // Check previous row (if not first row)
+    if y > 0 {
+        let previous_row = y - 1;
+        for x_pos in min_x..=max_x {
+            if skip_until > x_pos {
+                continue;
+            }
+            let current_char = matrix[previous_row][x_pos];
+            if current_char.is_numeric() {
+                // Get the number full number from the coords
+                let number = get_number_at_coord(x_pos, previous_row, &matrix);
+                // Skip over until the end of the number
+                skip_until = number.x + number.len;
+                // Add to found list
+                found_part_numbers.push(number);
+            }
+        }
+    }
+
+    // Check before character
+    if matrix[y][min_x].is_numeric() {
+        let number = get_number_at_coord(min_x, y, &matrix);
+        found_part_numbers.push(number);
+    }
+    // Check after character
+    if matrix[y][max_x].is_numeric() {
+        let number = get_number_at_coord(max_x, y, &matrix);
+        found_part_numbers.push(number);
+    }
+
+    let mut skip_until = 0;
+    // Check next row (if not last)
+    if y != matrix.len() - 1 {
+        let next_row = y + 1;
+        for x_pos in min_x..=max_x {
+            if skip_until > x_pos {
+                continue;
+            }
+            let current_char = matrix[next_row][x_pos];
+            if current_char.is_numeric() {
+                // Get the number full number from the coords
+                let number = get_number_at_coord(x_pos, next_row, &matrix);
+                // Skip over until the end of the number
+                skip_until = number.x + number.len;
+                // Add to found list
+                found_part_numbers.push(number);
+            }
+        };
+    }
+    
+    if found_part_numbers.len() == 2 {
+        return Some((found_part_numbers[0], found_part_numbers[1]));
+    }
+    return None;
+}
+
+fn get_number_at_coord(x: usize, y: usize, matrix: &Vec<Vec<char>>) -> PartNumber{
+    let mut start_of_number = x;
+    let mut end_of_number = x;
+    let max_x = matrix[0].len() - 1;
+    while start_of_number != 0 && matrix[y][start_of_number-1].is_numeric() {
+        start_of_number -= 1;
+    }
+    while end_of_number != max_x && matrix[y][end_of_number+1].is_numeric() {
+        end_of_number += 1;
+    }
+    let number: String = matrix[y][start_of_number..=end_of_number].iter().collect();
+    return PartNumber {
+        x: start_of_number,
+        y: end_of_number,
+        len: number.len(),
+        number: number.parse().unwrap()
+    };
 }
 
 fn get_day_3_1_answer(input_data: Lines) -> usize {
     let engine_matrix: Vec<Vec<char>> = input_data.map(|x| convert_engine_data(x)).collect();
     let part_numbers = find_part_numbers(&engine_matrix);
-    // assert_eq!(total, 2101);
     let total = part_numbers.iter().sum();
+    assert_eq!(total, 527369);
     return total;    
 }
 
@@ -60,7 +175,6 @@ fn find_part_numbers(matrix: &Vec<Vec<char>>) -> Vec<usize> {
                     } 
                     // Check if adjacent to a symbol and add it to the list if so.
                     if is_number_adjacent_to_symbol(start_of_char, line_number, current_number.len(), &matrix) {
-                        // println!("Valid number: {}", current_number);
                         part_numbers.push(current_number.parse().unwrap());
                     }
                     // Clear used number regardless of it was added to list
@@ -77,46 +191,31 @@ fn is_number_adjacent_to_symbol(x: usize, y: usize, length: usize, matrix: &Vec<
     let min_x = if x == 0 { 0 } else { x - 1 };
     let max_x = (x + length).min(matrix[0].len() - 1);
     let mut match_found = false;
-    // Debug output
-    // println!("({},{})", min_x + 1, y);
 
     // Check previous row (if not first row)
     if y > 0 {
         let previous_row = y - 1;
         for x_pos in min_x..=max_x {
             let current_char = matrix[previous_row][x_pos];
-            // print!("{}", current_char);
             if is_special_character(current_char) {
                 match_found = true;
             }
         }
     }
-    println!();
-
-    // Check same row
-    // for x_pos in min_x..=max_x {
-    //     print!("{}", matrix[y][x_pos]);
-    // }
     if is_special_character(matrix[y][min_x]) || is_special_character(matrix[y][max_x]) {
         match_found = true;
     }
-    println!();
-
     // Check next row (if not last)
     if y != matrix.len() - 1 {
         let next_row = y + 1;
         for x_pos in min_x..=max_x {
             let current_char = matrix[next_row][x_pos];
-            // print!("{}", current_char);
             if is_special_character(current_char) {
                 match_found = true;
             }
         }
-        // println!();
     }
 
-    // println!("Match: {}", match_found);
-    // println!();
     return match_found;
 }
 
@@ -132,6 +231,12 @@ fn run_day_2() {
     
     println!("Day 2-1 answer: {}", get_day_2_1_answer(input.clone()));
     println!("Day 2-2 answer: {}", get_day_2_2_answer(input.clone()));
+}
+
+struct DicePull {
+    red: u32,
+    green: u32,
+    blue: u32,
 }
 
 fn get_day_2_1_answer(input_data: Lines) -> usize {

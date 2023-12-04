@@ -9,8 +9,119 @@ struct DicePull {
 }
 
 fn main() {
+    run_day_3();
     run_day_2();
     run_day_1();
+}
+
+fn run_day_3() {
+    let file_path = "data/day-3.txt";
+    let file_data = fs::read_to_string(file_path)
+    .expect("Should have been able to read the file");
+    let input = file_data.lines();
+    
+    println!("Day 3-1 answer: {}", get_day_3_1_answer(input.clone()));
+}
+
+fn get_day_3_1_answer(input_data: Lines) -> usize {
+    let engine_matrix: Vec<Vec<char>> = input_data.map(|x| convert_engine_data(x)).collect();
+    let part_numbers = find_part_numbers(&engine_matrix);
+    // assert_eq!(total, 2101);
+    let total = part_numbers.iter().sum();
+    return total;    
+}
+
+fn convert_engine_data(input: &str) -> Vec<char> {
+    return input.chars().collect();
+}
+
+fn find_part_numbers(matrix: &Vec<Vec<char>>) -> Vec<usize> {
+    let mut part_numbers = Vec::new();
+    // Check each line
+    for (line_number, line) in matrix.iter().enumerate() {
+        // Variable to hold consecutive numbers
+        let mut current_number = String::new();
+        // Iterate over current line
+        for (character_number, character) in line.iter().enumerate() {
+            if character.is_numeric() {
+                // Add found number to current list
+                current_number.push(*character);
+
+            }
+            // If the character isn't numeric or we're at the end of the line.
+            if !character.is_numeric() || character_number == line.len() - 1 {
+                // Check if we've found one or more numbers
+                if !current_number.is_empty() {
+                    // Determine the start of the character
+                    let mut start_of_char = character_number - current_number.len();
+                    // If it's the end of the line, need to add one extra
+                    if character.is_numeric() && character_number == line.len() - 1 {
+                        start_of_char += 1;
+                    } 
+                    // Check if adjacent to a symbol and add it to the list if so.
+                    if is_number_adjacent_to_symbol(start_of_char, line_number, current_number.len(), &matrix) {
+                        // println!("Valid number: {}", current_number);
+                        part_numbers.push(current_number.parse().unwrap());
+                    }
+                    // Clear used number regardless of it was added to list
+                    current_number.clear()
+                }
+            }
+        }
+    }
+    
+    return part_numbers;
+}
+
+fn is_number_adjacent_to_symbol(x: usize, y: usize, length: usize, matrix: &Vec<Vec<char>>) -> bool{
+    let min_x = if x == 0 { 0 } else { x - 1 };
+    let max_x = (x + length).min(matrix[0].len() - 1);
+    let mut match_found = false;
+    // Debug output
+    // println!("({},{})", min_x + 1, y);
+
+    // Check previous row (if not first row)
+    if y > 0 {
+        let previous_row = y - 1;
+        for x_pos in min_x..=max_x {
+            let current_char = matrix[previous_row][x_pos];
+            // print!("{}", current_char);
+            if is_special_character(current_char) {
+                match_found = true;
+            }
+        }
+    }
+    println!();
+
+    // Check same row
+    // for x_pos in min_x..=max_x {
+    //     print!("{}", matrix[y][x_pos]);
+    // }
+    if is_special_character(matrix[y][min_x]) || is_special_character(matrix[y][max_x]) {
+        match_found = true;
+    }
+    println!();
+
+    // Check next row (if not last)
+    if y != matrix.len() - 1 {
+        let next_row = y + 1;
+        for x_pos in min_x..=max_x {
+            let current_char = matrix[next_row][x_pos];
+            // print!("{}", current_char);
+            if is_special_character(current_char) {
+                match_found = true;
+            }
+        }
+        // println!();
+    }
+
+    // println!("Match: {}", match_found);
+    // println!();
+    return match_found;
+}
+
+fn is_special_character(character: char) -> bool{
+    return !character.is_alphanumeric() && character != '.';
 }
 
 fn run_day_2() {

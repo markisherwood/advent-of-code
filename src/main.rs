@@ -3,9 +3,53 @@ use std::{fs::{self}, collections::HashMap, str::Lines, fmt};
 use regex::Regex;
 
 fn main() {
+    run_day_4();
     run_day_3();
     run_day_2();
     run_day_1();
+}
+
+fn run_day_4() {
+    let file_path = "data/day-4.txt";
+    let file_data = fs::read_to_string(file_path)
+    .expect("Should have been able to read the file");
+    let input = file_data.lines();
+    
+    println!("Day 4-1 answer: {}", get_day_4_1_answer(input.clone()));
+}
+
+fn get_day_4_1_answer(input_data: Lines) -> usize {
+    let lottery_data = input_data.map(|x| process_lottery_data(x));
+    let points = lottery_data.map(|(winners, picks)| calculate_winners(winners, picks));
+    let total = points.sum();
+    assert_eq!(20667, total);
+    return total;
+}
+
+fn calculate_winners(winning_numbers: Vec<usize>, picked_numbers: Vec<usize>) -> usize {
+    // Find which picked numbers match the winning numbers
+    let picked_winners = picked_numbers.iter().filter(|x| winning_numbers.contains(*x));
+    // One point for first winner
+    let winners = picked_winners.count();
+    if winners == 0 {
+        return 0;
+    }
+    return 1 << winners - 1;
+}
+
+fn process_lottery_data(input: &str) -> (Vec<usize>, Vec<usize>) {
+    // Strip out game number
+    let mut game_data = input.split(':').skip(1).next().unwrap().split('|');
+    // Separate winning numbers and picked
+    let winning_string = game_data.next().unwrap();
+    let picked_string = game_data.next().unwrap();
+
+    let re = Regex::new(r"\d+").unwrap();
+    // Parse winning numbers
+    let picked_numbers: Vec<usize> = re.find_iter(picked_string).map(|x| x.as_str().parse::<usize>().unwrap()).collect();
+    let winning_numbers: Vec<usize> = re.find_iter(winning_string).map(|x| x.as_str().parse::<usize>().unwrap()).collect();
+    
+    return (winning_numbers, picked_numbers);
 }
 
 fn run_day_3() {
